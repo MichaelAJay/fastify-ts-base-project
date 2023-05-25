@@ -1,14 +1,35 @@
-import fastify from 'fastify'
+require('dotenv').config()
+import { fastify as server } from 'fastify'
 import app from './app'
 
-const server = fastify()
+const { ENVIRONMENT } = process.env;
+if (!ENVIRONMENT) {
+  throw new Error('Server could not initialize.  Check all environment variables')
+}
 
-server.register(app)
+const envToLogger = {
+  dev: {
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid, hostname',
+      },
+    },
+  },
+  production: true,
+  test: false,
+}
 
-server.listen({ port: 8080 }, (err, address) => {
+const fastify = server({ logger: envToLogger[ENVIRONMENT] ?? true })
+
+fastify.register(app)
+
+fastify.listen({ port: 8080 }, (err, address) => {
   if (err) {
     console.error(err)
     process.exit(1)
   }
   console.log(`Server listening at ${address}`)
 })
+
